@@ -42,7 +42,7 @@ export default class extends wepy.app {
   }
 
   onLaunch() {
-    this.testAsync()
+    // this.testAsync()
   }
 
   sleep (s) {

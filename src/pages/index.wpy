@@ -1,4 +1,5 @@
 <style lang="less">
+  
   .tabs{
     width: 100%;
   }
@@ -7,8 +8,25 @@
     bottom: 0;
     width: 100%;
     height: 100rpx;
+    line-height: 100rpx;
     border-top: 1px solid #eee;
     display: flex;
+    .img {
+      text-align: center;
+      padding: 0 20rpx 0 30rpx;
+      .image {
+        width: 110rpx;
+        height: 110rpx;
+        border-radius: 50px;
+        position: relative;
+        top: -30rpx;
+        animation: img-active 5s linear infinite;
+        
+      }
+      .pause {
+        animation-play-state:paused;
+      }
+    }
     .content{
       flex: 1;
     }
@@ -18,23 +36,48 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      font-size: 30rpx;
+      /deep/ .i-icon{
+        font-size: 30rpx;
+      }
     }
+  }
+  .music-list-container {
+    width: 100%;
+  }
+  @keyframes img-active
+  {
+    from {transform: rotate(0);}
+    to {transform: rotate(360deg);}
   }
 </style>
 
 <template>
   <view class="container">
-    <i-tabs class="tabs" current="{{ currentTab }}" bindchange="handleChange">
+    <i-tabs class="tabs" current="{{ currentTab }}" bindchange="handleChangeTabs">
       <i-tab key="people" title="口哨"></i-tab>
       <i-tab key="parrot" title="鹦鹉"></i-tab>
     </i-tabs>
-    <view></view>
+    <view class="music-list-container">
+      <i-cell-group>
+        <i-cell wx:for="{{ musicList }}" wx:key="{{ index }}" title="{{ item.name }}" @tap="handlePlay({{ item }})">
+          <i-icon wx:if="{{ music.src === item.src }}" color="#67c23a" size="20" slot="icon" type="play" />
+        </i-cell>
+      </i-cell-group>
+    </view>
     <view class="play-container">
-      <view class="img"></view>
-      <view class="content"></view>
-      <view class="control" @tap="handleChangePlayStatus">
-        <i-icon wx:if="{{ music.status === 1 }}" type="play_fill" />
-        <i-icon wx:else type="suspend" />
+      <view class="img">
+        <image class="image {{ music.status ? '' : 'pause' }}" mode="aspectFit" src="{{ music.img }}"></image>
+      </view>
+      <view class="content">
+        {{ music.name }}
+      </view>
+      <view class="time" wx:if="{{ music.duration }}">
+        {{ music.currentTime + ' / ' + music.duration }}
+      </view>
+      <view wx:if="{{ music.src }}" class="control" @tap="handleChangePlayStatus">
+        <i-icon size="22" wx:if="{{ music.status === 0 }}" type="play_fill" />
+        <i-icon size="22" wx:else type="suspend" />
       </view>
     </view>
   </view>
@@ -42,15 +85,25 @@
 
 <script>
   import wepy from 'wepy'
+  // 云开发数据库相关
+  wx.cloud.init()
+  const db = wx.cloud.database({env: 'eks'})
+  const collection = db.collection('music')
+
+  // 音乐相关
   const audio = wx.createInnerAudioContext()
-  audio.src = 'cloud://eks.656b-eks/music/童年.mp3'
+  audio.autoplay = true
+  audio.loop = true
+  
   export default class Index extends wepy.page {
     config = {
       navigationBarTitleText: 'test',
       usingComponents: {
         'i-tabs': '../iview/tabs/index',
         'i-tab': '../iview/tab/index',
-        'i-icon': '../iview/icon/index'
+        'i-icon': '../iview/icon/index',
+        'i-cell-group': '../iview/cell-group/index',
+        'i-cell': '../iview/cell/index'
       }
     }
 
@@ -58,9 +111,13 @@
 
     data = {
       currentTab: 'people',
+      musicList: [], // 音乐列表
       music: {
-        url: '', // 音乐地址
-        status: 1 // 1 播放 0 暂停
+        img: '', // 图片地址
+        name: '', // 歌名
+        status: 0, // 1 播放 0 暂停
+        currentTime: '', // 当前播放时间
+        duration: '' // 总时长
       }
     }
 
@@ -68,8 +125,9 @@
     }
 
     methods = {
-      handleChange ({ detail }) {
+      handleChangeTabs ({ detail }) {
         this.currentTab = detail.key
+        this.getMusicList(this.currentTab)
       },
 
       handleChangePlayStatus () {
@@ -79,14 +137,39 @@
         } else {
           audio.pause()
         }
+      },
+
+      handlePlay (item) {
+        if (audio.src !== item.src) {
+          audio.src = this.music.src = item.src
+          this.music.name = item.name
+          this.music.img = item.img
+          this.music.status = 1
+        }
       }
     }
 
     events = {
     }
 
+    getMusicList (type) {
+      collection.where({
+        type
+      }).get({
+        success: (res) => {
+          this.musicList = res.data
+          this.$apply()
+        }
+      })
+    }
+
     onLoad() {
-      // audio.autoplay = true
+      this.getMusicList(this.currentTab)
+      audio.onTimeUpdate(() => {
+        this.music.currentTime = Math.floor(audio.currentTime)
+        this.music.duration = Math.floor(audio.duration)
+        this.$apply()
+      })
     }
   }
 </script>
