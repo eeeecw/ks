@@ -5,7 +5,9 @@
 		"es6": false,
 		"postcss": false,
 		"minified": false,
-		"newFeature": true
+		"newFeature": true,
+		"nodeModules": false,
+		"autoAudits": false
 	},
 	"compileType": "miniprogram",
 	"appid": "wx7ede1f4f26fe8eac",
