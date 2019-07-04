@@ -11,6 +11,8 @@
     line-height: 100rpx;
     border-top: 1px solid #eee;
     display: flex;
+    background: #fff;
+    z-index: 9;
     .img {
       text-align: center;
       padding: 0 20rpx 0 30rpx;
@@ -50,6 +52,7 @@
   }
   .music-list-container {
     width: 100%;
+    margin-bottom: 120rpx;
   }
   .modal-tip {
     margin-top: 3px;
